@@ -1,0 +1,161 @@
+command /edit:
+	permission: skript.itemeditor
+	aliases: /itemeditor, /itemedit
+	trigger:
+		if player's tool is air:
+			send "&cYou can't edit an empty hand!"
+			stop
+		set metadata "editor" of player to chest inventory with 5 rows named "&6Item Editor"
+		set {_slot} to 0
+		loop 45 times:
+			set slot {_slot} of metadata "editor" of player to black stained glass pane named ""
+			add 1 to {_slot}
+		set slot 11 of metadata "editor" of player to name tag named "&bRename Item"
+		set slot 15 of metadata "editor" of player to enchanted book named "&dEdit Enchantments"
+		set slot 19 of metadata "editor" of player to red dye named "&cEdit Color"
+		set slot 22 of metadata "editor" of player to player's held item
+		set slot 25 of metadata "editor" of player to paper named "&5Edit Lore"
+		set slot 29 of metadata "editor" of player to iron ingot named "&7Make Unbreakable"
+		set slot 33 of metadata "editor" of player to gold block named "&6Ability Editor"
+		set slot 44 of metadata "editor" of player to barrier named "&4Close Editor"
+		open metadata "editor" of player to player
+
+on inventory click:
+	if player's current inventory is metadata "editor" of player:
+		cancel event
+		if event-inventory is metadata "editor" of player:
+			if event-slot is 44:
+				close player's inventory
+			if event-slot is 11:
+				close player's inventory
+				send "&eWhat would you like to rename your item to? Type ""cancel"" to cancel."
+				set {prompt.rename::%player's uuid%} to true
+			if event-slot is 15:
+				close player's inventory
+				send "&eWhat enchantment would you like to add? Type ""cancel"" to cancel."
+				set {prompt.enchant1::%player's uuid%} to true
+			if event-slot is 19:
+				set metadata "editcolor" of player to chest inventory with 6 rows named "&cEdit Color"
+				set {_slot} to 0
+				loop 54 times:
+					set slot {_slot} of metadata "editcolor" of player to black stained glass pane named ""
+					add 1 to {_slot}
+				set slot 13 of metadata "editcolor" of player to white dye named "&fWhite"
+				set slot 19 of metadata "editcolor" of player to orange dye named "&6Orange"
+				set slot 20 of metadata "editcolor" of player to magenta dye named "&dMagenta"
+				set slot 21 of metadata "editcolor" of player to light blue dye named "&bLight Cyan"
+				set slot 22 of metadata "editcolor" of player to yellow dye named "&eYellow"
+				set slot 23 of metadata "editcolor" of player to lime dye named "&aLime"
+				set slot 24 of metadata "editcolor" of player to pink dye named "&cPink"
+				set slot 25 of metadata "editcolor" of player to gray dye named "&7Gray"
+				set slot 28 of metadata "editcolor" of player to cyan dye named "&3Cyan"
+				set slot 29 of metadata "editcolor" of player to purple dye named "&5Purple"
+				set slot 30 of metadata "editcolor" of player to blue dye named "&1Blue"
+				set slot 31 of metadata "editcolor" of player to brown dye named "&8Brown"
+				set slot 32 of metadata "editcolor" of player to green dye named "&2Green"
+				set slot 33 of metadata "editcolor" of player to red dye named "&4Red"
+				set slot 34 of metadata "editcolor" of player to black dye named "&0Black"
+				set slot 40 of metadata "editcolor" of player to light gray dye named "&7Light Gray"
+				open metadata "editcolor" of player to player
+			if event-slot is 25:
+				set metadata "editlore" of player to chest inventory with 6 rows named "&5Edit Lore"
+				set {_slot} to 0
+				loop 54 times:
+					set slot {_slot} of metadata "editlore" of player to black stained glass pane named ""
+					add 1 to {_slot}
+				set {_slot} to 9
+				loop 36 times:
+					set slot {_slot} of metadata "editlore" of player to gray stained glass pane named ""
+					add 1 to {_slot}
+				set {_slot} to 9
+				set {_lore} to 1
+				loop 36 times:
+					if line {_lore} of lore of player's tool is set:
+						set slot {_slot} of metadata "editlore" of player to paper named "Line %{_lore}%" with lore line {_lore} of lore of player's tool
+						add 1 to {_slot}
+						add 1 to {_lore}
+				set slot 49 of metadata "editlore" of player to redstone block named "&cAdd Lore Line"
+				open metadata "editlore" of player to player
+			else if event-slot is 29:
+				execute player command "/td"
+			else if event-slot is 33:
+				execute player command "/ae"
+	else if player's current inventory is metadata "editcolor" of player:
+		cancel event
+		if event-inventory is metadata "editcolor" of player:
+			if event-item is not black stained glass pane named "":
+				execute player command "/color %uncolored lowercase name of event-item%"
+	else if player's current inventory is metadata "editlore" of player:
+		cancel event
+		if event-inventory is metadata "editlore" of player:
+			if event-item is paper:
+				set {prompt.setloreline::%player's uuid%} to subtext of uncolored name of event-item from character 6 to length of uncolored name of event-item
+				send "&eWhat would you like to set this line of lore to? Type ""cancel"" to cancel."
+				close player's inventory
+			else if event-item is redstone block:
+				set {prompt.addloreline::%player's uuid%} to true
+				send "&eWhat would you like to add to this item's lore? Tyle ""cancel"" to cancel."
+				close player's inventory
+
+on chat:
+	if {prompt.rename::%player's uuid%} is set:
+		cancel event
+		if message is "cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.rename::%player's uuid%}
+			stop
+		if message is "Cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.rename::%player's uuid%}
+			stop
+		execute player command "/rename &r%message%"
+		clear {prompt.rename::%player's uuid%}
+	if {prompt.enchant1::%player's uuid%} is set:
+		cancel event
+		if message is "cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.enchant1::%player's uuid%}
+			stop
+		if message is "Cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.enchant1::%player's uuid%}
+			stop
+		set {prompt.enchant2::%player's uuid%} to message
+		clear {prompt.enchant1::%player's uuid%}
+		send "&eWhat level of %message% would you like to add?"
+	else if {prompt.enchant2::%player's uuid%} is set:
+		cancel event
+		if message is "cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.enchant2::%player's uuid%}
+			stop
+		if message is "Cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.enchant2::%player's uuid%}
+			stop
+		execute player command "/ei %{prompt.enchant2::%player's uuid%}% %message%"
+		clear {prompt.enchant2::%player's uuid%}
+	if {prompt.setloreline::%player's uuid%} is set:
+		cancel event
+		if message is "cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.setloreline::%player's uuid%}
+			stop
+		if message is "Cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.setloreline::%player's uuid%}
+			stop
+		execute player command "/sll %{prompt.setloreline::%player's uuid%}% &r%message%"
+		clear {prompt.setloreline::%player's uuid%}
+	if {prompt.addloreline::%player's uuid%} is set:
+		cancel event
+		if message is "cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.addloreline::%player's uuid%}
+			stop
+		if message is "Cancel":
+			send "&aCanceled this edit!"
+			clear {prompt.addloreline::%player's uuid%}
+			stop
+		execute player command "/all %message%"
+		clear {prompt.addloreline::%player's uuid%}

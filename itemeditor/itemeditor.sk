@@ -1,0 +1,175 @@
+command /i <text> [<integer>]:
+	permission: skript.itemeditor
+	trigger:
+		set {_item} to arg-1 parsed as item type
+		if arg-2 is not set:
+			give {_item} to player
+			send "&eGave you &61 %arg-1%!"
+		else if arg-2 is greater than 64:
+			set {_num} to 64
+			loop {_num} times:
+				give {_item} to player
+			send "&eGave you &664 %arg-1%s!"
+		else:
+			set {_num} to arg-2
+			loop {_num} times:
+				give {_item} to player
+			send "&eGave you &6%arg-2% %arg-1%s!"
+
+command /rename <text>:
+	permission: skript.itemeditor
+	aliases: /rn
+	usage: &e/rename <colored item name>
+	trigger:
+		set name of player's tool to colored arg-1
+		send "&aSet the name of your held item to ""%colored arg-1%&a""!"
+
+command /setloreline <number> <string>:
+	permission: skript.itemeditor
+	aliases: /sll
+	trigger:
+		set {_arg-1} to arg-1
+		if line 1 of lore of player's tool contains uncolored "Ability UUID: ":
+			add 2 to {_arg-1}
+		if arg-1 is greater than 100:
+			send "&cYou cannot have lore longer than 100 lines! This is to prevent server crashes and general abuse."
+			stop
+		set line {_arg-1} of lore of player's tool to colored arg-2
+		send "&aSet lore line &2%arg-1% &aof your held item to ""%colored arg-2%&a""!"
+
+command /addloreline <string>:
+	permission: skript.itemeditor
+	aliases: /all
+	trigger:
+		if line 100 of lore of player's tool is set:
+			send "&cYou cannot have lore longer than 100 lines! This is to prevent server crashes and general abuse."
+			stop
+		add colored arg-1 to the lore of the player's tool
+		send "&aAdded ""%colored arg-1%&a"" to the lore of your held item!"
+
+command /removeloreline <integer>:
+	permission: skript.itemeditor
+	aliases: /rll
+	trigger:
+		set {_arg-1} to arg-1
+		if line 1 of lore of player's tool contains uncolored "Ability UUID: ":
+			add 2 to {_arg-1}
+		if line arg-1 of lore of player's tool is not set:
+			send "&cThis lore line does not exist on this item!"
+			stop
+		set {_line} to 1
+		set {_lines} to true
+		set {_item} to type of player's tool
+		set name of {_item} to name of player's tool
+		enchant {_item} with enchantments of player's tool
+		clear lore of {_item}
+		while {_lines} is true:
+			if line {_line} of lore of player's tool is set:
+				if {_line} is not {_arg-1}:
+					add line {_line} of lore of player's tool to lore of {_item}
+			else:
+				set {_lines} to false
+			add 1 to {_line}
+		set player's tool to {_item}
+		send "&aRemoved line line ""&2%arg-1%&a"" of your held item!"
+
+command /insertloreline <integer> <text>:
+	permission: skript.itemeditor
+	aliases: /ill
+	trigger:
+		set {_arg-1} to arg-1
+		if line 1 of lore of player's tool contains uncolored "Ability UUID: ":
+			add 2 to {_arg-1}
+		if arg-1 is greater than 100:
+			send "&cYou cannot have lore longer than 100 lines! This is to prevent server crashes and general abuse."
+			stop
+		set {_line} to 1
+		set {_lines} to true
+		set {_item} to type of player's tool
+		set name of {_item} to name of player's tool
+		enchant {_item} with enchantments of player's tool
+		clear lore of {_item}
+		while {_lines} is true:
+			if line {_line} of lore of player's tool is set:
+				if {_line} is not {_arg-1}:
+					add line {_line} of lore of player's tool to lore of {_item}
+				else:
+					add colored arg-2 to lore of {_item}
+					add line {_line} of lore of player's tool to lore of {_item}
+			else:
+				set {_lines} to false
+			add 1 to {_line}
+		set player's tool to {_item}
+		send "&aAdded lore ""&b%colored arg-2%&a"" at line &b%arg-1%&a!"
+		
+command /clearitemlore:
+	permission: skript.itemeditor
+	aliases: /cil, /clearlore, /cl
+	trigger:
+		if line 1 of lore of player's tool contains uncolored "Ability UUID: ":
+			set {_abilityuuid} to line 1 of lore of player's tool
+		set {_safety} to player's tool
+		clear lore of player's tool
+		if {itemsafety::%player's uuid%} is not set:
+			send "&cWarning! This command cannot be undone! You have been given a copy of the original item, and your held item has been edited. You can turn off this feature in the /itemsettings menu!"
+			give {_safety} to player
+		if {_abilityuuid} is set:
+			add {_abilityuuid} to lore of player's tool
+			add "" to lore of player's tool
+		send "&aCleared all lore from your held item!"
+
+command /color <color>:
+	permission: skript.itemeditor
+	aliases: /itemcolor, /coloritem, /dye, /paint
+	trigger:
+		set {_itemcheck} to player's tool
+		dye player's tool arg-1
+		if player's tool is air:
+			send "&cThis item could not be dyed!"
+			stop
+		set {_text} to "<%arg-1%>%arg-1%"
+		send "&aSet the color of your held item to %colored {_text}%&a!"
+
+command /toggledurability:
+	permission: skript.itemeditor
+	aliases: /td, /toggled, /tdurability
+	trigger:
+		set {_safety} to player's tool
+		set {_i} to type of player's tool
+		if player's tool is not unbreakable:
+			set player's tool to unbreakable player's tool
+			if {itemsafety::%player's uuid%} is not set:
+				send "&cWarning! This command cannot be undone! You have been given a copy of the original item, and your held item has been edited. You can turn off this feature in the /itemsettings menu!"
+				give {_safety} to player
+			send "&aToggled unbreakable on for your held item!"
+
+command /enchantitem <string> <number>:
+	permission: skript.itemeditor
+	aliases: /ei, /enchanti, /eitem
+	trigger:
+		set {_enchant} to "%arg-1% %arg-2%" parsed as enchantment type
+		if arg-1 is "fire_aspect":
+			set {_enchant} to "fire aspect %arg-2%" parsed as enchantment type
+		enchant player's tool with {_enchant}
+		send "&aAdded %{_enchant}% to your held item!"
+
+command /clearenchants:
+	permission: skript.itemeditor
+	aliases: /clearench, /clearenchantments, /ce
+	trigger:
+		set {_safety} to player's tool
+		clear enchantments of player's tool
+		if {itemsafety::%player's uuid%} is not set:
+			send "&cWarning! This command cannot be undone! You have been given a copy of the original item, and your held item has been edited. You can turn off this feature in the /itemsettings menu!"
+			give {_safety} to player
+		send "&aCleared your held item's enchantments!"
+
+command /itemsettings:
+	permission: skript.itemeditor
+	trigger:
+		if {itemsafety::%player's uuid%} is set:
+			clear {itemsafety::%player's uuid%}
+			send "&aTurned on Item Safety!"
+		else:
+			set {itemsafety::%player's uuid%} to true
+			send "&cWarning! Turned off Item Safety! You are no longer protected from irreversable changes."
