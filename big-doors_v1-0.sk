@@ -25,7 +25,6 @@ command /bigdoors [<text> [<text>]]:
       send "&7* &f/bd"
       send "&7* &f/bd help"
       if player has permission "bigdoors.edit":
-#        send "&7* &f/bd tutorial <tooltip:&7Starts a BigDoors &7written tutorial in chat.>&8(?)<reset>"
         send "&7* &f/bd options <tooltip:&7Brings up the options GUI for BigDoors&7.>&8(?)<reset>"
         send "&7* &f/bd wand <tooltip:&7Gives you a BigDoors &7wand.>&8(?)<reset>"
         send "&7* &f/bd create <tooltip:&7Creates a Big Door at the selected location.>&8(?)<reset>"
@@ -34,16 +33,6 @@ command /bigdoors [<text> [<text>]]:
         send "&7* &f/bd connector <id> <tooltip:&7Creates a Wireless Connector for the specified door at your pos1 selection.>&8(?)<reset>"
         send "&7* &f/bd list <type> <tooltip:&7Sends a list of every BigDoors door with its ID, location, and connected blocks.>&8(?)<reset>"
         send "&7* &f/bd reload <tooltip:&7Reloads the BigDoors skript. Will lag the server temporarily!>&8(?)<reset>"
-
-#    else if lowercase arg-1 is "tutorial":
-#      if player has permission "bigdoors.edit":
-#        send "&8[&7&lB&f&lD&8] &7Welcome to Euphro's &fBigDoors&7!"
-#        wait 2 seconds
-#        send "&f* &7This tutorial is a work-in-progress. In fact, this was written before any of the actual BigDoors features were added."
-#        wait 6 seconds
-#        send "&f* &7If you're reading this, Euphro has royally fucked up. Contact him, please! DM &f@euphrounderscore &7on &9Discord."
-#      else:
-#        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>." # This line doesn't parse the last &7 correctly for some reason. This is by far the least janky workaround you'll see in this code.
 
     else if lowercase arg-1 is "options":
       if player has permission "bigdoors.edit":
