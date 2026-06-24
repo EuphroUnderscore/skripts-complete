@@ -1,0 +1,156 @@
+#
+# Thanks for using @euphrounderscore's "Cameras"!
+#
+# This is a skript with a few features all related to surveilance
+# for servers based around prisons and similar ideas.
+#
+# You can start using the skript using "/cameras" ingame.
+#
+# Update Date: 1 / 1 / 2024
+# Version: 1.1
+#
+
+
+
+# Admin Information
+on join:
+    else if player has permission "skript.cameras":
+        send "&b&lCameras > &3This server is running Euphro_'s ""Cameras"", v1.1."
+
+# Main Security Camera Command
+command /cameras [<text = "help">] [<text>] [<text>]:
+    aliases: /securitycameras, /securitycamera, /camera, /ca
+    usage: "&b&lCameras > &3Incorrect command usage! Correct parsing: /keycard [<text>] [<text> <text>]"
+    trigger:
+        if lowercase arg-1 is "help":
+            send ""
+            send "&b&lCameras"
+            send "&3Created by @euphrounderscore"
+            send ""
+            send "&3This server is running Cameras v0.1"
+            send "&3This skript was updated last on 1 / 1 / 2024."
+            send ""
+            send "&3This plugin is compatible with Euphro's ""Keycards""!"
+            send "&3Security cameras still work when turned into keycard scanners, and will only open to players with the correct level keycard."
+            send ""
+            send "&b&lCommands:"
+            send "&3&lcameras help"
+            send "&3- Shows information about Cameras."
+            send ""
+            send "&3&l/cameras createcamera <camera group> <name>"
+            send "&3- Gives you a camera of the desired name and group."
+            send ""
+            send "&3&l/cameras createpanel <panel group>"
+            send "&3- Gives you an access panel to the chosen camera group. Can be made into a keycard scanner with the ""Keycards"" skript to restrict access."
+            send ""
+        else if lowercase arg-1 is "createcamera":
+            player has permission "camera.edit"
+            set {_skull} to "MHF_Cam" parsed as offline player
+            set {_camera} to (skull of {_skull})
+            set name of {_camera} to "&3Security Camera - %uncolored arg-3%"
+            set lore of {_camera} to "&bGroup: %uncolored arg-2%"
+            give player {_camera}
+            send "&3&lCameras > &3Gave you a security camera in the group ""%uncolored arg-2%"" named ""%uncolored arg-3%""!"
+        else if lowercase arg-1 is "createpanel":
+            player has permission "camera.edit"
+            set {_skull} to "Addelburgh" parsed as offline player
+            set {_panel} to skull of {_skull} with name "&3Security Panel" with lore "&r" and "&3Group: %uncolored arg-2%"
+            give player {_panel}
+            send "&3&lCameras > &3Gave you a security panel in the group ""%uncolored arg-2%""!"
+        else:
+            send "&3&lCameras > &3Unrecognized command. Please try again."
+
+# Security Camera Placing / Breaking
+on place:
+	if name of player's tool contains "Security Camera - ":
+		set {camera.group::%event-block's location%} to subtext of uncolored line 1 of lore of player's tool from character 8 to length of uncolored line 1 of lore of player's tool
+		set {camera.name::%event-block's locatioN%} to subtext of uncolored name of player's tool from character 19 to length of uncolored name of player's tool
+		set {camera.location::%event-block's location%} to event-block's location
+		send "&3&lCameras > &3Placed a security camera in group ""%subtext of uncolored line 1 of lore of player's tool from character 8 to length of uncolored line 1 of lore of player's tool%"" named ""%subtext of uncolored name of player's tool from character 19 to length of uncolored name of player's tool%""!"
+
+on break:
+	if {camera.group::%event-block's location%} is set:
+		if player has permission "cameras.build":
+			if player is sneaking:
+				clear {camera.group::%event-block's location%}
+				clear {camera.name::%event-block's location%}
+				clear {camera.location::%event-block's location%}
+				send "&3&lCameras > &3Broke a security camera!"
+			else:
+				send "&3&lCameras > &3If you want to break a security camera, sneak while doing so."
+				cancel event
+		else:
+			send "&3&lCameras > &3This security camera is protected."
+			cancel event
+
+# Security Panel Placing / Breaking
+on place:
+	if uncolored line 2 of lore of player's tool contains "Group: ":
+		set {panel::%event-block's location%} to subtext of uncolored line 2 of lore of player's tool from character 8 to length of uncolored line 2 of lore of player's tool
+		send "&3&lCameras > &3Placed a security panel in group ""%subtext of uncolored line 2 of lore of player's tool from character 8 to length of uncolored line 2 of lore of player's tool%""!"
+
+on break:
+	if {panel::%event-block's location%} is set:
+		if player has permission "cameras.build":
+			if player is sneaking:
+				clear {panel::%event-block's location%}
+				send "&3&lCameras > &3Broke a security panel!"
+			else:
+				send "&3&lCameras > &3If you want to break a security panel, sneak while doing so."
+				cancel event
+		else:
+			send "&3&lCameras > &3This security panel is protected."
+			cancel event
+
+# Security Panel Functionality
+on right click:
+	if {panel::%event-block's location%} is set:
+		wait 1 tick
+		if event is not cancelled:
+			set metadata "securityPanel" of player to chest inventory with 6 rows
+			set {_slot} to 0
+			loop 54 times:
+				set slot {_slot} of metadata "securityPanel" of player to gray stained glass pane named "&r"
+				add 1 to {_slot}
+			set {_slot} to 0
+			loop 2 times:
+				loop 9 times:
+					set slot {_slot} of metadata "securityPanel" of player to black stained glass pane named "&r"
+					add 1 to {_slot}
+				set {_slot} to 45
+			set {_slot} to 9
+			loop {camera.name::*}:
+				set {_skull} to "MHF_Cam" parsed as offline player
+				set {_skull} to skull of {_skull}
+				set name of {_skull} to "&3%loop-value%"
+				set line 1 of lore of {_skull} to "&b%loop-index%"
+				set slot {_slot} of metadata "securityPanel" of player to {_skull}
+				add 1 to {_slot}
+			open metadata "securityPanel" of player to player
+
+on inventory click:
+	if player's current inventory is metadata "securityPanel" of player:
+		cancel event
+		if event-inventory is metadata "securityPanel" of player:
+			if event-item is not stained glass pane:
+				set {_loc} to player's location
+				set {_mode} to player's gamemode
+				set player's gamemode to spectator
+				set {inCamera::%player's uuid%} to location 1.5 blocks below location 0.15 blocks in front of {camera.location::%uncolored line 1 of lore of event-item%}
+				teleport player to location 1.5 blocks below location 0.15 blocks in front of {camera.location::%uncolored line 1 of lore of event-item%}
+				wait 5 seconds
+				set player's gamemode to {_mode}
+				teleport player to {_loc}
+				clear {inCamera::%player's uuid%}
+
+every tick:
+	loop all players:
+		if {inCamera::%loop-player's uuid%} is set:
+			set pitch of {inCamera::%loop-player's uuid%} to pitch of loop-player
+			set yaw of {inCamera::%loop-player's uuid%} to yaw of loop-player
+			if x-coordinate of loop-player is not x-coordinate of {inCamera::%loop-player's uuid%}:
+				teleport loop-player to {iNCamera::%loop-player's uuid%}
+			if y-coordinate of loop-player is not y-coordinate of {inCamera::%loop-player's uuid%}:
+				teleport loop-player to {iNCamera::%loop-player's uuid%}
+			if z-coordinate of loop-player is not z-coordinate of {inCamera::%loop-player's uuid%}:
+				teleport loop-player to {iNCamera::%loop-player's uuid%}

@@ -1,0 +1,141 @@
+#
+# Thanks for using @euphrounderscore's "Keycards"!
+#
+# This is a skript with a few features all related to keycards and
+# security for servers based around prisons and similar ideas.
+#
+# You can start using the skript using "/keycard" ingame.
+#
+# Update Date: 10 / 16 / 2022
+# Version: 1.3
+#
+
+
+
+# Admin Information
+on join:
+    else if player has permission "skript.keycards":
+        send "&3&lEKEY &8[&aS&8] &3> &bThis server is running Euphro_'s ""Keycards"", version 1.3."
+
+# Main Keycard Command
+command /keycard [<text = "help">] [<text> <number>]:
+    aliases: /key, /card, /kc
+    usage: "&3&lEKEY &8[&aS&8] &3> &bIncorrect command usage! Correct parsing: /keycard [<text>] [<text> <number>]"
+    trigger:
+        if lowercase arg-1 is "help":
+            send ""
+            send "&3&lKeycards"
+            send "&bCreated by @euphrounderscore"
+            send ""
+            send "&bThis server is running Keycards v1.3"
+            send "&bThis skript was updated last on 10 / 16 / 2022."
+            send ""
+            send "&3&lCommands:"
+            send "&b/keycard help"
+            send "&b- Shows information about Keycards."
+            send ""
+            if player has permission "keycard.edit":
+                send "&3/keycard createcard <card track> <rank>"
+                send "&b- Gives you a keycard of the desired type and rank."
+                send ""
+                send "&3/keycard createscanner <scanner track> <rank>"
+                send "&b- Makes the item in your hand a keycard scanner. If it is an iron block, it will turn into a redstone block for 5 seconds when activated."
+                send ""
+                send "&3/keycard master"
+                send "&b- Gives you a keycard that can open all keycard readers."
+                send ""
+        else if player has permission "keycard.edit":
+            if lowercase arg-1 is "createcard":
+                give player paper with name "&3Keycard - %uncolored colored arg-2%" with lore "&bRank: %arg-3%"
+                send "&3&lEKEY &8[&aS&8] &3> &bGave you a keycard for %uncolored colored arg-2% of level %arg-3%!"
+            else if lowercase arg-1 is "createscanner":
+                set player's tool to player's tool named "&3Keycard Scanner - %uncolored colored arg-2%"
+                set line 1 of lore of player's tool to "&bRank: %arg-3%"
+                send "&3&lEKEY &8[&aS&8] &3> &bGave you a keycard reader for %uncolored colored arg-2% of level %arg-3%!"
+            if lowercase arg-1 is "master":
+                give player paper with name "&3Keycard - Master" with lore "&bRank: Master"
+                send "&3&lEKEY &8[&aS&8] &3> &bGave you a Master Keycard!"
+        else:
+            send "&3&lEKEY &3> &cUnrecognized command. Please try again."
+
+# Keycard Reader Code
+on place:
+    if uncolored name of player's tool contains "Keycard Scanner - ":
+        set {keycard.scanner.track::%event-block's location%} to subtext of uncolored name of player's tool from character 19 to length of uncolored name of player's tool
+        set {keycard.scanner.rank::%event-block's location%} to (subtext of uncolored line 1 of lore of player's tool from character 7 to length of uncolored line 1 of lore of player's tool) parsed as integer
+        send "&3&lEKEY &8[&aS&8] &3> &3Placed a keycard scanner!" to player
+
+on break:
+    if {keycard.scanner.track::%event-block's location%} is set:
+        if player has permission "keycard.build":
+            if player is sneaking:
+                clear {keycard.scanner.track::%event-block's location%}
+                clear {keycard.scanner.rank::%event-block's location%}
+            else:
+                send "&3&lEKEY &8[&aS&8] &3> &3To remove this scanner, sneak while breaking it." to player
+                cancel event
+        else:
+            send "&3&lEKEY &3> &3This scanner is protected." to player
+            cancel event
+    else if {keycard.scanner.track::%location 1 block below event-block's location%} is set:
+        if event-block is a door:
+            if block below event-block is a door:
+                if player has permission "keycard.build":
+                    if player is sneaking:
+                        clear {keycard.scanner.track::%location 1 block below event-block's location%}
+                        clear {keycard.scanner.rank::%location 1 block below event-block's location%}
+                    else:
+                        send "&3&lEKEY &8[&aS&8] &3> &3To remove this scanner, sneak while breaking it." to player
+                        cancel event
+                else:
+                    send "&3&lEKEY &3> &3This scanner is protected." to player
+                    cancel event
+
+# Keycard Code
+on right click:
+    if {keycard.scanner.track::%event-block's location%} is set:
+        if name of player's tool is "&3Keycard - Master":
+            if event-block is iron block:
+                set event-block to redstone block
+                wait 3 seconds
+                set event-block to iron block
+            else if event-block is door or trapdoor:
+                toggle event-block
+                wait 3 seconds
+                toggle event-block
+            else if block 1 block below event-block is door:
+                toggle event-block
+                wait 3 seconds
+                toggle event-block
+        else if {keycard.scanner.track::%event-block's location%} is subtext of uncolored name of player's tool from character 11 to length of uncolored name of player's tool:
+            if {keycard.scanner.rank::%event-block's location%} is less than or equal to (subtext of uncolored line 1 of lore of player's tool from character 7 to length of uncolored line 1 of lore of player's tool) parsed as integer:
+                if event-block is iron block:
+                    set event-block to redstone block
+                    wait 3 seconds
+                    set event-block to iron block
+                else if event-block is lever:
+                    toggle event-block
+                else:
+                    toggle event-block
+                    wait 3 seconds
+                    toggle event-block
+            else:
+                send action bar "&cERROR > You need a keycard of %{keycard.scanner.track::%event-block's location%}% and level %{keycard.scanner.rank::%event-block's location%}%!" to player
+                cancel event
+        else:
+            send action bar "&cERROR > You need a keycard of %{keycard.scanner.track::%event-block's location%}% and level %{keycard.scanner.rank::%event-block's location%}%!" to player
+            cancel event
+    if {keycard.scanner.track::%location 1 block below event-block's location%} is set:
+        if name of player's tool is "&3Keycard - Master":
+            if block 1 block below event-block is door:
+                toggle event-block
+                wait 3 seconds
+                toggle event-block
+        else if {keycard.scanner.track::%location 1 block below event-block's location%} is subtext of uncolored name of player's tool from character 11 to length of uncolored name of player's tool:
+            if {keycard.scanner.rank::%location 1 block below event-block's location%} is less than or equal to (subtext of uncolored line 1 of lore of player's tool from character 7 to length of uncolored line 1 of lore of player's tool) parsed as integer:
+                toggle event-block
+                wait 3 seconds
+                toggle event-block
+            else:
+                send action bar "&cERROR > You need a keycard of %{keycard.scanner.track::%event-block's location%}% and level %{keycard.scanner.rank::%event-block's location%}%!" to player
+                cancel event

@@ -1,0 +1,672 @@
+on load:
+  loop all players:
+    set {bdwand::%loop-player's uuid%} to wooden hoe
+on unload:
+  set {bigdoors.keycardskriptenabled} to false
+on join:
+  if {bdwand::%player's uuid%} is not set:
+    set {bdwand::%player's uuid%} to wooden hoe
+on command "/sk reload big-doors_v1-0.sk":
+  if {bigdoors.keycardskriptenabled} is false:
+    wait 1 tick
+    send "&8[&7&lB&f&lD&8] &7Hey! This skript likely has a reference to a nonexistent function. This is intentional! This is to allow keycard skripts to to hook into BigDoors! Please ignore the error." to player
+
+command /bigdoors [<text> [<text>]]:
+  aliases: /bd
+  trigger:
+    if arg-1 is not set:
+      send "&8[&7&lB&f&lD&8] &7Running &fBigDoors v1.0&7."
+      send "&8[&7&lB&f&lD&8] &7Use &f/bd help &7to view available commands."
+
+    else if lowercase arg-1 is "help" or "?":
+      send "&8[&7&lB&f&lD&8] &7Running &fBigDoors v1.0&7."
+      send ""
+      send "&7Available &fBigDoors &7commands -"
+      send "&7* &f/bd"
+      send "&7* &f/bd help"
+      if player has permission "bigdoors.edit":
+#        send "&7* &f/bd tutorial <tooltip:&7Starts a BigDoors &7written tutorial in chat.>&8(?)<reset>"
+        send "&7* &f/bd options <tooltip:&7Brings up the options GUI for BigDoors&7.>&8(?)<reset>"
+        send "&7* &f/bd wand <tooltip:&7Gives you a BigDoors &7wand.>&8(?)<reset>"
+        send "&7* &f/bd create <tooltip:&7Creates a Big Door at the selected location.>&8(?)<reset>"
+        send "&7* &f/bd remove <id> <tooltip:&7Removes a Big Door.>&8(?)<reset>"
+        send "&7* &f/bd edit <id> <tooltip:&7Opens the edit GUI for a Big Door.>&8(?)<reset>"
+        send "&7* &f/bd connector <id> <tooltip:&7Creates a Wireless Connector for the specified door at your pos1 selection.>&8(?)<reset>"
+        send "&7* &f/bd list <type> <tooltip:&7Sends a list of every BigDoors door with its ID, location, and connected blocks.>&8(?)<reset>"
+        send "&7* &f/bd reload <tooltip:&7Reloads the BigDoors skript. Will lag the server temporarily!>&8(?)<reset>"
+
+#    else if lowercase arg-1 is "tutorial":
+#      if player has permission "bigdoors.edit":
+#        send "&8[&7&lB&f&lD&8] &7Welcome to Euphro's &fBigDoors&7!"
+#        wait 2 seconds
+#        send "&f* &7This tutorial is a work-in-progress. In fact, this was written before any of the actual BigDoors features were added."
+#        wait 6 seconds
+#        send "&f* &7If you're reading this, Euphro has royally fucked up. Contact him, please! DM &f@euphrounderscore &7on &9Discord."
+#      else:
+#        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>." # This line doesn't parse the last &7 correctly for some reason. This is by far the least janky workaround you'll see in this code.
+
+    else if lowercase arg-1 is "options":
+      if player has permission "bigdoors.edit":
+        set metadata "bigdoors-optionsgui" of player to hopper inventory named "&8&lBig&7&lDoors &8&lOptions"
+        loop 5 times:
+          set slot (loop-value - 1) of metadata "bigdoors-optionsgui" of player to gray stained glass pane named "&8"
+        set slot 1 of metadata "bigdoors-optionsgui" of player to {bdwand::%player's uuid%} named "&7Set Wand Item"
+        set slot 3 of metadata "bigdoors-optionsgui" of player to redstone torch named "&cWhat options do you need?" with lore "&7Like, I seriously don't know."
+        open metadata "bigdoors-optionsgui" of player to player
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>."
+
+    else if lowercase arg-1 is "wand":
+      if player has permission "bigdoors.edit":
+        if player's inventory does not contain unbreakable {bdwand::%player's uuid%} with name "&7BigDoors Wand":
+          send "&8[&7&lB&f&lD&8] &7You've been given a &fBigDoors Wand&7. Left click -> pos1, Right click -> pos2"
+          give player unbreakable {bdwand::%player's uuid%} with name "&7BigDoors Wand"
+        else:
+          send "&8[&7&lB&f&lD&8] &7You already have a &fBigDoors Wand&7! Left click -> pos1, Right click -> pos2"
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>."
+
+    else if lowercase arg-1 is "create":
+      if player has permission "bigdoors.edit":
+        set {_pos1} to metadata "bigdoors-pos1" of player
+        set {_pos2} to metadata "bigdoors-pos2" of player
+        if {_pos1} is not set:
+          send "&8[&7&lB&f&lD&8] &cUh oh! &7You're missing your &fpos1 &7selection!"
+          stop
+        if {_pos2} is not set:
+          send "&8[&7&lB&f&lD&8] &cUh oh! &7You're missing your &fpos2 &7selection!"
+          stop
+        if x-coordinate of {_pos1} - x-coordinate of {_pos2} is not 0:
+          if y-coordinate of {_pos1} - y-coordinate of {_pos2} is not 0:
+            if z-coordinate of {_pos1} - z-coordinate of {_pos2} is not 0:
+              send "&8[&7&lB&f&lD&8] &cUh oh! &7Your selection is not valid. Make sure your selection is 2d!"
+              stop
+        loop 1000 times:
+          if {bigdoors.doorids::%loop-value%} is not set:
+            set {_id} to loop-value
+            exit 2 sections
+        if {_id} is not set:
+          send "&f* &cUh oh! &7You have too many doors! The limit is 1000."
+          stop
+        send "&8[&7&lB&f&lD&8] &7Scanning blocks from &f(%x-coordinate of {_pos1}%, %y-coordinate of {_pos1}%, %z-coordinate of {_pos1}%) &7to &f(%x-coordinate of {_pos2}%, %y-coordinate of {_pos2}%, %z-coordinate of {_pos2}%)&7..."
+        set {_xadd} to -1
+        if x-coordinate of {_pos1} - x-coordinate of {_pos2} < 0:
+          set {_xadd} to 1
+        set {_yadd} to -1
+        if y-coordinate of {_pos1} - y-coordinate of {_pos2} < 0:
+          set {_yadd} to 1
+        set {_zadd} to -1
+        if z-coordinate of {_pos1} - z-coordinate of {_pos2} < 0:
+          set {_zadd} to 1
+        set {_location} to {_pos1}
+        loop abs(x-coordinate of {_pos1} - x-coordinate of {_pos2}) + 1 times:
+          loop abs(y-coordinate of {_pos1} - y-coordinate of {_pos2}) + 1 times:
+            loop abs(z-coordinate of {_pos1} - z-coordinate of {_pos2}) + 1 times:
+              set {_block} to type of block at {_location}
+              set block at {_location} to sea lantern
+              wait 1 tick
+              set block at {_location} to {_block}
+              add block at {_location} to {_scannedblocks::*}
+              if {bigdoors.alldoorblocks::%{_location}'s location%} is set:
+                send "&f* &cUh oh! &7This door overlaps with a pre-existing door!"
+                send "&f* &7ID: &f%{bigdoors.alldoorblocks::%{_location}'s location%}% &7| Location: &f(%x-coordinate of {_location}%, %y-coordinate of {_location}%, %z-coordinate of {_location}%)"
+                set block at {_location} to red concrete
+                wait 8 ticks
+                set block at {_location} to {_block}
+                wait 8 ticks
+                set block at {_location} to red concrete
+                wait 8 ticks
+                set block at {_location} to {_block}
+                wait 8 ticks
+                set block at {_location} to red concrete
+                wait 8 ticks
+                set block at {_location} to {_block}
+                stop
+              add {_zadd} to z-coordinate of {_location}
+            set z-coordinate of {_location} to z-coordinate of {_pos1}
+            add {_yadd} to y-coordinate of {_location}
+          set y-coordinate of {_location} to y-coordinate of {_pos1}
+          add {_xadd} to x-coordinate of {_location}
+        loop {_scannedblocks::*}:
+          set {bigdoors.alldoorblocks::%loop-value's location%} to {_id}
+          set {bigdoors.doors::%{_id}%::%loop-value's location%} to loop-value's location
+        set {bigdoors.dooroptions.opendir::%{_id}%} to "up"
+        set {bigdoors.dooroptions.particles::%{_id}%} to false
+        set {bigdoors.dooroptions.openspeed::%{_id}%} to 3
+        set {bigdoors.dooroptions.opentimer::%{_id}%} to 3
+        set {bigdoors.dooroptions.enabled::%{_id}%} to true
+        set {bigdoors.keycard.enabled::%{_id}%} to false
+        set {bigdoors.doorids::%{_id}%} to "(%x-coordinate of {_pos1}%, %y-coordinate of {_pos1}%, %z-coordinate of {_pos1}%) -> %x-coordinate of {_pos2}%, %y-coordinate of {_pos2}%, %z-coordinate of {_pos2}%)"
+        send "&f* &7Scanning complete! Door ID: %{_id}%"
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>."
+
+    else if lowercase arg-1 is "remove":
+      if player has permission "bigdoors.edit":
+#        if {bigdoors.doorids::%arg-2%} is set:
+        if 1 is 1:
+          set {_id} to arg-2 parsed as number
+          clear {bigdoors.doors::%arg-2%::*}
+          remove all {_id} from {bigdoors.alldoorblocks::*}
+          remove all {_id} from {bigdoors.connectors::*}
+          clear {bigdoors.doorids::%arg-2%}
+          send "&8[&7&lB&f&lD&8] &7Deleted &fdoor %arg-2%&7!"
+        else:
+          send "&8[&7&lB&f&lD&8] &cUh oh! &7Door ID &f%arg-2% &7does not exist.."
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>."
+
+    else if lowercase arg-1 is "edit":
+      if player has permission "bigdoors.edit":
+        if {bigdoors.doorids::%arg-2%} is set:
+          set metadata "bigdoors-editgui" of player to chest inventory with 4 rows named "&8&lEdit Door %arg-2%"
+          loop 54 times:
+            set slot (loop-value - 1) of metadata "bigdoors-editgui" of player to black stained glass pane named "&0"
+          set slot 0 of metadata "bigdoors-editgui" of player to black stained glass pane named "&0%arg-2%"
+          set slot 10 of metadata "bigdoors-editgui" of player to spectral arrow named "&6Opening Direction" with lore "&7Up" and "&7Down" and "&7North - South" and "&7East - West"
+          if {bigdoors.dooroptions.opendir::%arg-2%} is "up":
+            set line 1 of lore of slot 10 of metadata "bigdoors-editgui" of player to "&f* Up"
+          else if {bigdoors.dooroptions.opendir::%arg-2%} is "down":
+            set line 2 of lore of slot 10 of metadata "bigdoors-editgui" of player to "&f* Down"
+          else if {bigdoors.dooroptions.opendir::%arg-2%} is "ns":
+            set line 3 of lore of slot 10 of metadata "bigdoors-editgui" of player to "&f* North - South"
+          else if {bigdoors.dooroptions.opendir::%arg-2%} is "ew":
+            set line 4 of lore of slot 10 of metadata "bigdoors-editgui" of player to "&f* East - West"
+          set slot 19 of metadata "bigdoors-editgui" of player to flint and steel named "&cOpening Particles" with lore "&7True" and "&7False"
+          if {bigdoors.dooroptions.particles::%arg-2%} is true:
+            set line 1 of lore of slot 19 of metadata "bigdoors-editgui" of player to "&f* True"
+          else if {bigdoors.dooroptions.particles::%arg-2%} is false:
+            set line 2 of lore of slot 19 of metadata "bigdoors-editgui" of player to "&f* False"
+          set slot 12 of metadata "bigdoors-editgui" of player to sugar named "&bOpening Speed" with lore "&7Slow" and "&7Medium" and "&7Fast" and "&7Instant"
+          if {bigdoors.dooroptions.openspeed::%arg-2%} is 1:
+            set line 1 of lore of slot 12 of metadata "bigdoors-editgui" of player to "&f* Slow"
+          else if {bigdoors.dooroptions.openspeed::%arg-2%} is 2:
+            set line 2 of lore of slot 12 of metadata "bigdoors-editgui" of player to "&f* Medium"
+          else if {bigdoors.dooroptions.openspeed::%arg-2%} is 3:
+            set line 3 of lore of slot 12 of metadata "bigdoors-editgui" of player to "&f* Fast"
+          else if {bigdoors.dooroptions.openspeed::%arg-2%} is 4:
+            set line 4 of lore of slot 12 of metadata "bigdoors-editgui" of player to "&f* Instant"
+          set slot 21 of metadata "bigdoors-editgui" of player to clock named "&6Opening Timer" with lore "&71s" and "&73s" and "&75s" and "&710s"
+          if {bigdoors.dooroptions.opentimer::%arg-2%} is 1:
+            set line 1 of lore of slot 21 of metadata "bigdoors-editgui" of player to "&f* 1s"
+          else if {bigdoors.dooroptions.opentimer::%arg-2%} is 3:
+            set line 2 of lore of slot 21 of metadata "bigdoors-editgui" of player to "&f* 3s"
+          else if {bigdoors.dooroptions.opentimer::%arg-2%} is 5:
+            set line 3 of lore of slot 21 of metadata "bigdoors-editgui" of player to "&f* 5s"
+          else if {bigdoors.dooroptions.opentimer::%arg-2%} is 10:
+            set line 4 of lore of slot 21 of metadata "bigdoors-editgui" of player to "&f* 10s"
+          set slot 14 of metadata "bigdoors-editgui" of player to iron door named "&6Door Enabled" with lore "&7True" and "&7False"
+          if {bigdoors.dooroptions.enabled::%arg-2%} is true:
+            set line 1 of lore of slot 14 of metadata "bigdoors-editgui" of player to "&f* True"
+          else if {bigdoors.dooroptions.enabled::%arg-2%} is false:
+            set line 2 of lore of slot 14 of metadata "bigdoors-editgui" of player to "&f* False"
+          set slot 23 of metadata "bigdoors-editgui" of player to command block named "&aRequired Permission" with lore "&c<none>"
+          if {bigdoors.dooroptions.permission::%arg-2%} is set:
+            set line 1 of lore of slot 23 of metadata "bigdoors-editgui" of player to "&a%{bigdoors.dooroptions.permission::%arg-2%}%"
+          if {bigdoors.keycardskriptenabled} is false:
+            set slot 16 of metadata "bigdoors-editgui" of player to paper named "&bKeycard Settings" with lore "&7Requires a supporting keycard plugin."
+            set slot 25 of metadata "bigdoors-editgui" of player to barrier named "&c&lERROR" with lore "&7No supporting keycard plugin detected!" and "&7Be sure it sets the Skript variable {bigdoors.keycardskriptenabled} to true!"
+          else:
+            set slot 16 of metadata "bigdoors-editgui" of player to paper named "&bKeycard Settings" with lore "&7Enabled" and "&7Disabled"
+            if {bigdoors.keycard.enabled::%arg-2%} is true:
+              set line 1 of lore of slot 16 of metadata "bigdoors-editgui" of player to "&f* Enabled"
+            else if {bigdoors.keycard.enabled::%arg-2%} is false:
+              set line 2 of lore of slot 16 of metadata "bigdoors-editgui" of player to "&f* Disabled"
+            if {bigdoors.keycard.type::%arg-2%} is set:
+              set slot 25 of metadata "bigdoors-editgui" of player to cyan stained glass named "&7Type: &f%{bigdoors.keycard.type::%arg-2%}%" with lore "&r" and "&r" and "&eLeft-Click to edit type." and "&eRight-Click to edit level."
+            else:
+              set slot 25 of metadata "bigdoors-editgui" of player to cyan stained glass named "&7Type: &c<none>" with lore "&r" and "&r" and "&eLeft-Click to edit type." and "&eRight-Click to edit level."
+            if {bigdoors.keycard.level::%arg-2%} is set:
+              set line 1 of lore of slot 25 of metadata "bigdoors-editgui" of player to "&7Level: &f%{bigdoors.keycard.level::%arg-2%}%"
+            else:
+              set line 1 of lore of slot 25 of metadata "bigdoors-editgui" of player to "&7Level: &c<none>"
+          open metadata "bigdoors-editgui" of player to player
+        else:
+          send "&8[&7&lB&f&lD&8] &cUh oh! &7Door ID &f%arg-2% &7does not exist.."
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>."
+
+    else if lowercase arg-1 is "connector":
+      if player has permission "bigdoors.edit":
+        if {bigdoors.doorids::%arg-2%} is set:
+          set {_pos1} to metadata "bigdoors-pos1" of player
+          set {bigdoors.connectors::%{_pos1}'s location%} to arg-2 parsed as number
+          send "&8[&7&lB&f&lD&8] &7Added a &fWireless Connector &7to &fdoor %arg-2%&7!"
+        else:
+          send "&8[&7&lB&f&lD&8] &cUh oh! &7Door ID &f%arg-2% &7does not exist.."
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>."
+
+    else if lowercase arg-1 is "list":
+      if player has permission "bigdoors.edit":
+        loop {bigdoors.connectors::*}:
+          add loop-index to {_connectorlist.%loop-value%::*}
+        send "&8[&7&lB&f&lD&8] &7All registered BigDoors doors:"
+        loop {bigdoors.doorids::*}:
+          send "&7* &fDoor %loop-index%: &7%loop-value%"
+          loop {_connectorlist.%loop-index%::*}:
+            send "&8Connector: %loop-value-2%"
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You lack the permission &fbigdoors.edit<gray>."
+
+    else if lowercase arg-1 is "reload":
+      if player is op:
+        execute player command "/sk reload big-doors_v1-0.sk"
+      else:
+        send "&8[&7&lB&f&lD&8] &cUh oh! &7You must be OPed to used this command!<gray>."
+    else:
+      send "&8[&7&lB&f&lD&8] &7Unrecognized command. Use &f/bd help &7to view available commands."
+
+on join:
+  if player has permission "bigdoors.edit":
+    set metadata "bigdoors-resetpos1" of player to 0
+    set metadata "bigdoors-resetpos2" of player to 0
+on left click:
+  if player has permission "bigdoors.edit":
+    if type of player's tool is {bdwand::%player's uuid%}:
+      cancel event
+      if player is sneaking:
+        if metadata "bigdoors-pos1" of player is set:
+          if metadata "bigdoors-resetpos1" of player is 0:
+            set metadata "bigdoors-resetpos1" of player to 1
+            if metadata "bigdoors-resetpos1-warned" of player is not set:
+              send "&8[&7&lB&f&lD&8] &fShift + Left-Click &7again to reset &fpos1&7." to player
+              set metadata "bigdoors-resetpos1-warned" of player to true
+            wait 2 seconds
+            set metadata "bigdoors-resetpos1" of player to 0
+          else:
+            set metadata "bigdoors-resetpos1" of player to 0
+            clear metadata "bigdoors-pos1" of player
+            send "&8[&7&lB&f&lD&8] &7Cleared your &fpos1&7 selection." to player
+      else:
+        if event-block is set:
+          send "&8[&7&lB&f&lD&8] &7First position set to (%x-coordinate of event-block%, %y-coordinate of event-block%, %z-coordinate of event-block%)" to player
+          set metadata "bigdoors-pos1" of player to event-block's location
+on right click:
+  if player has permission "bigdoors.edit":
+    if type of player's tool is {bdwand::%player's uuid%}:
+      cancel event
+      if player is sneaking:
+        if metadata "bigdoors-pos2" of player is set:
+          if metadata "bigdoors-resetpos2" of player is 0:
+            set metadata "bigdoors-resetpos2" of player to 1
+            if metadata "bigdoors-resetpos2-warned" of player is not set:
+              send "&8[&7&lB&f&lD&8] &fShift + Right-Click &7again to reset &fpos2&7." to player
+              set metadata "bigdoors-resetpos2-warned" of player to true
+            wait 2 seconds
+            set metadata "bigdoors-resetpos2" of player to 0
+          else:
+            set metadata "bigdoors-resetpos2" of player to 0
+            clear metadata "bigdoors-pos2" of player
+            send "&8[&7&lB&f&lD&8] &7Cleared your &fpos2&7 selection." to player
+      else:
+        if event-block is set:
+          send "&8[&7&lB&f&lD&8] &7Second position set to (%x-coordinate of event-block%, %y-coordinate of event-block%, %z-coordinate of event-block%)" to player
+          set metadata "bigdoors-pos2" of player to event-block's location
+
+on inventory click:
+  if player's current inventory is metadata "bigdoors-optionsgui" of player:
+    cancel event
+    if event-slot is 1:
+      close player's inventory
+      send "&7* Drop the item you want to set as your &fBigDoors Wand&7." to player
+      set metadata "bigdoors-rebindwand" of player to true
+
+on inventory click:
+  if player's current inventory is metadata "bigdoors-editgui" of player:
+    cancel event
+    set {_id} to uncolored name of slot 0 of player's current inventory
+    set {_id} to {_id} parsed as number
+    if event-slot is 10:
+      if {bigdoors.dooroptions.opendir::%{_id}%} is "up":
+        set {bigdoors.dooroptions.opendir::%{_id}%} to "down"
+      else if {bigdoors.dooroptions.opendir::%{_id}%} is "down":
+        set {bigdoors.dooroptions.opendir::%{_id}%} to "ns"
+      else if {bigdoors.dooroptions.opendir::%{_id}%} is "ns":
+        set {bigdoors.dooroptions.opendir::%{_id}%} to "ew"
+      else if {bigdoors.dooroptions.opendir::%{_id}%} is "ew":
+        set {bigdoors.dooroptions.opendir::%{_id}%} to "up"
+      else if {bigdoors.dooroptions.opendir::%{_id}%} is not set:
+        set {bigdoors.dooroptions.opendir::%{_id}%} to "up"
+      execute player command "/bd edit %{_id}%"
+    else if event-slot is 19:
+      if {bigdoors.dooroptions.particles::%{_id}%} is true:
+        set {bigdoors.dooroptions.particles::%{_id}%} to false
+      else if {bigdoors.dooroptions.particles::%{_id}%} is false:
+        set {bigdoors.dooroptions.particles::%{_id}%} to true
+      else if {bigdoors.dooroptions.particles::%{_id}%} is not set:
+        set {bigdoors.dooroptions.particles::%{_id}%} to false
+      execute player command "/bd edit %{_id}%"
+    else if event-slot is 12:
+      if {bigdoors.dooroptions.openspeed::%{_id}%} is 1:
+        set {bigdoors.dooroptions.openspeed::%{_id}%} to 2
+      else if {bigdoors.dooroptions.openspeed::%{_id}%} is 2:
+        set {bigdoors.dooroptions.openspeed::%{_id}%} to 3
+      else if {bigdoors.dooroptions.openspeed::%{_id}%} is 3:
+        set {bigdoors.dooroptions.openspeed::%{_id}%} to 4
+      else if {bigdoors.dooroptions.openspeed::%{_id}%} is 4:
+        set {bigdoors.dooroptions.openspeed::%{_id}%} to 1
+      else if {bigdoors.dooroptions.openspeed::%{_id}%} is not set:
+        set {bigdoors.dooroptions.openspeed::%{_id}%} to 3
+      execute player command "/bd edit %{_id}%"
+    else if event-slot is 21:
+      if {bigdoors.dooroptions.opentimer::%{_id}%} is 1:
+        set {bigdoors.dooroptions.opentimer::%{_id}%} to 3
+      else if {bigdoors.dooroptions.opentimer::%{_id}%} is 3:
+        set {bigdoors.dooroptions.opentimer::%{_id}%} to 5
+      else if {bigdoors.dooroptions.opentimer::%{_id}%} is 5:
+        set {bigdoors.dooroptions.opentimer::%{_id}%} to 10
+      else if {bigdoors.dooroptions.opentimer::%{_id}%} is 10:
+        set {bigdoors.dooroptions.opentimer::%{_id}%} to 1
+      else if {bigdoors.dooroptions.opentimer::%{_id}%} is not set:
+        set {bigdoors.dooroptions.opentimer::%{_id}%} to 3
+      execute player command "/bd edit %{_id}%"
+    else if event-slot is 14:
+      if {bigdoors.dooroptions.enabled::%{_id}%} is true:
+        set {bigdoors.dooroptions.enabled::%{_id}%} to false
+      else if {bigdoors.dooroptions.enabled::%{_id}%} is false:
+        set {bigdoors.dooroptions.enabled::%{_id}%} to true
+      else if {bigdoors.dooroptions.enabled::%{_id}%} is not set:
+        set {bigdoors.dooroptions.enabled::%{_id}%} to true
+      execute player command "/bd edit %{_id}%"
+    else if event-slot is 23:
+      close player's inventory
+      send "&8[&7&lB&f&lD&8] &7Type the name of the new permission in chat! Type &f""none"" &7to disable the permission requirement." to player
+      set metadata "bigdoors-setpermission" of player to {_id}
+    else if event-slot is 16:
+      if {bigdoors.keycardskriptenabled} is true:
+        if {bigdoors.keycard.enabled::%{_id}%} is true:
+          set {bigdoors.keycard.enabled::%{_id}%} to false
+        else if {bigdoors.keycard.enabled::%{_id}%} is false:
+          set {bigdoors.keycard.enabled::%{_id}%} to true
+        else if {bigdoors.keycard.enabled::%{_id}%} is not set:
+          set {bigdoors.keycard.enabled::%{_id}%} to false
+        execute player command "/bd edit %{_id}%"
+    else if event-slot is 25:
+      if {bigdoors.keycardskriptenabled} is true:
+        if click type is left mouse button:
+          set metadata "bigdoors-setkeycardtype" of player to {_id}
+          send "&8[&7&lB&f&lD&8] &7Type the new keycard type in chat! Type &f""none"" &7to remove the type entirely. (This probably won't work with your keycard skript!)" to player
+          close player's inventory
+        else if click type is right mouse button:
+          set metadata "bigdoors-setkeycardlevel" of player to {_id}
+          send "&8[&7&lB&f&lD&8] &7Type the required level in chat! Type &f""none"" &7to remove the level entirely. (This might not work with your keycard skript!)" to player
+          close player's inventory
+
+on chat:
+  if metadata "bigdoors-setpermission" of player is set:
+    cancel event
+    set {bigdoors.dooroptions.permission::%metadata "bigdoors-setpermission" of player%} to message
+    if uncolored message is "none":
+      clear {bigdoors.dooroptions.permission::%metadata "bigdoors-setpermission" of player%}
+    execute player command "/bd edit %metadata "bigdoors-setpermission" of player%"
+    clear metadata "bigdoors-setpermission" of player
+  else if metadata "bigdoors-setkeycardtype" of player is set:
+    cancel event
+    set {bigdoors.keycard.type::%metadata "bigdoors-setkeycardtype" of player%} to message
+    if uncolored message is "none":
+      clear {bigdoors.keycard.type::%metadata "bigdoors-setkeycardtype" of player%}
+    execute player command "/bd edit %metadata "bigdoors-setkeycardtype" of player%"
+    clear metadata "bigdoors-setkeycardtype" of player
+  else if metadata "bigdoors-setkeycardlevel" of player is set:
+    cancel event
+    set {bigdoors.keycard.level::%metadata "bigdoors-setkeycardlevel" of player%} to message
+    if uncolored message is "none":
+      clear {bigdoors.keycard.level::%metadata "bigdoors-setkeycardlevel" of player%}
+    execute player command "/bd edit %metadata "bigdoors-setkeycardlevel" of player%"
+    clear metadata "bigdoors-setkeycardlevel" of player
+
+on drop:
+  if metadata "bigdoors-rebindwand" of player is set:
+    clear metadata "bigdoors-rebindwand" of player
+    cancel event
+    send "&7* Bound your BigDoors Wand to &f%type of event-item%&7!" to player
+    set {bdwand::%player's uuid%} to type of event-item
+
+every 7 ticks:
+  loop all players:
+    if loop-player has permission "bigdoors.edit":
+      if loop-player is holding {bdwand::%loop-player's uuid%}:
+        set {_pos1} to metadata "bigdoors-pos1" of loop-player
+        if distance between loop-player and {_pos1} is less than 20:
+          set {_location} to {_pos1}
+          subtract 0.5 from x-coordinate of {_location}
+          loop 6 times:
+            play cyan dust at location 0.5 blocks in front of location 0.5 blocks above {_location}
+            play cyan dust at location 0.5 blocks in front of location 0.5 blocks below {_location}
+            play cyan dust at location 0.5 blocks behind location 0.5 blocks above {_location}
+            play cyan dust at location 0.5 blocks behind location 0.5 blocks below {_location}
+            add 0.2 to x-coordinate of {_location}
+          set {_location} to {_pos1}
+          subtract 0.5 from z-coordinate of {_location}
+          loop 6 times:
+            play cyan dust at location 0.5 blocks left of location 0.5 blocks above {_location}
+            play cyan dust at location 0.5 blocks left of location 0.5 blocks below {_location}
+            play cyan dust at location 0.5 blocks right of location 0.5 blocks above {_location}
+            play cyan dust at location 0.5 blocks right of location 0.5 blocks below {_location}
+            add 0.2 to z-coordinate of {_location}
+          set {_location} to {_pos1}
+          subtract 0.5 from y-coordinate of {_location}
+          loop 6 times:
+            play cyan dust at location 0.5 blocks in front of location 0.5 blocks left of {_location}
+            play cyan dust at location 0.5 blocks in front of location 0.5 blocks right of {_location}
+            play cyan dust at location 0.5 blocks behind location 0.5 blocks left of {_location}
+            play cyan dust at location 0.5 blocks behind location 0.5 blocks right of {_location}
+            add 0.2 to y-coordinate of {_location}
+
+        set {_pos2} to metadata "bigdoors-pos2" of loop-player
+        if distance between loop-player and {_pos2} is less than 20:
+          set {_location} to {_pos2}
+          subtract 0.5 from x-coordinate of {_location}
+          loop 6 times:
+            play red dust at location 0.5 blocks in front of location 0.5 blocks above {_location}
+            play red dust at location 0.5 blocks in front of location 0.5 blocks below {_location}
+            play red dust at location 0.5 blocks behind location 0.5 blocks above {_location}
+            play red dust at location 0.5 blocks behind location 0.5 blocks below {_location}
+            add 0.2 to x-coordinate of {_location}
+          set {_location} to {_pos2}
+          subtract 0.5 from z-coordinate of {_location}
+          loop 6 times:
+            play red dust at location 0.5 blocks left of location 0.5 blocks above {_location}
+            play red dust at location 0.5 blocks left of location 0.5 blocks below {_location}
+            play red dust at location 0.5 blocks right of location 0.5 blocks above {_location}
+            play red dust at location 0.5 blocks right of location 0.5 blocks below {_location}
+            add 0.2 to z-coordinate of {_location}
+          set {_location} to {_pos2}
+          subtract 0.5 from y-coordinate of {_location}
+          loop 6 times:
+            play red dust at location 0.5 blocks in front of location 0.5 blocks left of {_location}
+            play red dust at location 0.5 blocks in front of location 0.5 blocks right of {_location}
+            play red dust at location 0.5 blocks behind location 0.5 blocks left of {_location}
+            play red dust at location 0.5 blocks behind location 0.5 blocks right of {_location}
+            add 0.2 to y-coordinate of {_location}
+
+        set {_pos1} to metadata "bigdoors-pos1" of loop-player
+        set {_pos2} to metadata "bigdoors-pos2" of loop-player
+        if x-coordinate of {_pos1} - x-coordinate of {_pos2} is not 0:
+          if y-coordinate of {_pos1} - y-coordinate of {_pos2} is not 0:
+            if z-coordinate of {_pos1} - z-coordinate of {_pos2} is not 0:
+              stop
+        set {_location} to {_pos1}
+        set {_destination} to {_pos1}
+        set y-coordinate of {_destination} to y-coordinate of {_pos2}
+        set {_add} to -0.25
+        if (y-coordinate of {_location} - y-coordinate of {_destination}) is less than 0:
+          set {_add} to 0.25
+        loop abs(y-coordinate of {_location} - y-coordinate of {_destination}) * 4 + 1 times:
+          play lime dust at {_location}
+          add {_add} to y-coordinate of {_location}
+        set {_location} to {_pos1}
+        set {_destination} to {_pos1}
+        set x-coordinate of {_destination} to x-coordinate of {_pos2}
+        set {_add} to -0.25
+        if (x-coordinate of {_location} - x-coordinate of {_destination}) is less than 0:
+          set {_add} to 0.25
+        loop abs(x-coordinate of {_location} - x-coordinate of {_destination}) * 4 + 1 times:
+          play lime dust at {_location}
+          add {_add} to x-coordinate of {_location}
+        set {_location} to {_pos1}
+        set {_destination} to {_pos1}
+        set z-coordinate of {_destination} to z-coordinate of {_pos2}
+        set {_add} to -0.25
+        if (z-coordinate of {_location} - z-coordinate of {_destination}) is less than 0:
+          set {_add} to 0.25
+        loop abs(z-coordinate of {_location} - z-coordinate of {_destination}) * 4 + 1 times:
+          play lime dust at {_location}
+          add {_add} to z-coordinate of {_location}
+        set {_location} to {_pos2}
+        set {_destination} to {_pos2}
+        set y-coordinate of {_destination} to y-coordinate of {_pos1}
+        set {_add} to -0.25
+        if (y-coordinate of {_location} - y-coordinate of {_destination}) is less than 0:
+          set {_add} to 0.25
+        loop abs(y-coordinate of {_location} - y-coordinate of {_destination}) * 4 + 1 times:
+          play lime dust at {_location}
+          add {_add} to y-coordinate of {_location}
+        set {_location} to {_pos2}
+        set {_destination} to {_pos2}
+        set x-coordinate of {_destination} to x-coordinate of {_pos1}
+        set {_add} to -0.25
+        if (x-coordinate of {_location} - x-coordinate of {_destination}) is less than 0:
+          set {_add} to 0.25
+        loop abs(x-coordinate of {_location} - x-coordinate of {_destination}) * 4 + 1 times:
+          play lime dust at {_location}
+          add {_add} to x-coordinate of {_location}
+        set {_location} to {_pos2}
+        set {_destination} to {_pos2}
+        set z-coordinate of {_destination} to z-coordinate of {_pos1}
+        set {_add} to -0.25
+        if (z-coordinate of {_location} - z-coordinate of {_destination}) is less than 0:
+          set {_add} to 0.25
+        loop abs(z-coordinate of {_location} - z-coordinate of {_destination}) * 4 + 1 times:
+          play lime dust at {_location}
+          add {_add} to z-coordinate of {_location}
+
+command /doorreset [<text>]:
+  permission: op
+  trigger:
+    if lowercase arg-1 is "confirm":
+      loop 1000 times:
+        clear {bigdoors.doors::%loop-value%::*}
+      clear {bigdoors.alldoorblocks::*}
+      clear {bigdoors.doorids::*}
+      clear {bigdoors.connectors::*}
+      send "&8[&7&lB&f&lD&8] &7Deleted &cALL &7doors!"
+    else:
+      send "&8[&7&lB&f&lD&8] &cThis is a dangerous command. &7If you really want to delete all doors, please use &f/doorreset confirm&7."
+
+on click:
+  if {bigdoors.alldoorblocks::%event-block's location%} is set:
+    set {_id} to {bigdoors.alldoorblocks::%event-block's location%}
+    if {bigdoors.dooroptions.enabled::%{_id}%} is false:
+      stop
+    if player has permission "bigdoors.edit":
+      if player is sneaking:
+        if player's tool is {bdwand::%player's uuid%}:
+          if metadata "bigdoors-pos2" of player is not set:
+            send "&8[&7&lB&f&lD&8] &7You just clicked &fdoor %{bigdoors.alldoorblocks::%location of event-block%}%&7." to player
+            stop
+#    send "&8[&7&lB&f&lD&8] &a&lDEBUG: &7Detected door %{bigdoors.alldoorblocks::%event-block's location%}%" to player
+  else if {bigdoors.connectors::%event-block's location%} is set:
+    set {_id} to {bigdoors.connectors::%event-block's location%}
+  if {_id} is set:
+    cancel event
+    if {bigdoors.keycardskriptenabled} is true:
+      if {bigdoors.keycard.enabled::%{_id}%} is true:
+        if {bigdoors.keycard.type::%{_id}%} is set:
+          if keycardaccess({bigdoors.keycard.type::%{_id}%}, {bigdoors.keycard.level::%{_id}%} parsed as number, player) is false:
+            stop
+    if {bigdoors.dooroptions.permission::%{_id}%} is set:
+      if player does not have permission {bigdoors.dooroptions.permission::%{_id}%}:
+        send action bar "&8[&7&lB&f&lD&8] &cYou lack the permission ""%{bigdoors.dooroptions.permission::%{_id}%}%""!"
+        stop
+    if {bigdoors.doorinuse::%{_id}%} is not set:
+      set {bigdoors.doorinuse::%{_id}%} to true
+      if {bigdoors.dooroptions.opendir::%{_id}%} is "up":
+        wait 2 ticks
+        set {_lowest} to 1000
+        set {_highest} to -1000
+        loop {bigdoors.doors::%{_id}%::*}:
+          set {_y} to y-coordinate of loop-value
+          add loop-value to {_sortedblocks.locations::%{_y}%::*}
+          add type of block at loop-value to {_sortedblocks.blocks::%{_y}%::*}
+          if {_y} is greater than {_highest}:
+            set {_highest} to {_y}
+          if {_y} is less than {_lowest}:
+            set {_lowest} to {_y}
+        loop {_highest} - {_lowest} + 1 times:
+          if loop-value is {_highest} - {_lowest} + 1:
+            loop {_sortedblocks.locations::%{_highest}%::*}:
+              set block at loop-value-2 to air
+          else:
+            loop {_highest} - {_lowest} times:
+              loop {_sortedblocks.locations::%{_highest} - loop-value-2 + 1%::*}:
+                set block at loop-value-3 to block 1 block below loop-value-3
+                set block at block 1 block below loop-value-3 to air
+            loop (4 - {bigdoors.dooroptions.openspeed::%{_id}%}) times:
+              wait 2 ticks
+        loop {bigdoors.dooroptions.opentimer::%{_id}%} times:
+          wait 1 second
+        loop {_sortedblocks.locations::%{_lowest}%::*}:
+          set {_loc} to loop-value
+          set y-coordinate of {_loc} to {_highest}
+          set block at {_loc} to {_sortedblocks.blocks::%{_lowest}%::%loop-index%}
+        loop (4 - {bigdoors.dooroptions.openspeed::%{_id}%}) times:
+          wait 2 ticks
+        loop {_highest} - {_lowest} times:
+          loop {_highest} - {_lowest} times:
+            loop {_sortedblocks.locations::%{_lowest} + loop-value-2%::*}:
+              set block 1 block below loop-value-3 to block at loop-value-3
+          loop {_sortedblocks.locations::%{_lowest} + loop-value%::*}:
+            set {_loc} to loop-value-2
+            set y-coordinate of {_loc} to {_highest}
+            set block at {_loc} to {_sortedblocks.blocks::%{_lowest} + loop-value-1%::%loop-index%}
+          loop (4 - {bigdoors.dooroptions.openspeed::%{_id}%}) times:
+            wait 2 ticks
+      else if {bigdoors.dooroptions.opendir::%{_id}%} is "down":
+        wait 2 ticks
+        set {_lowest} to 1000
+        set {_highest} to -1000
+        loop {bigdoors.doors::%{_id}%::*}:
+          set {_y} to y-coordinate of loop-value
+          add loop-value to {_sortedblocks.locations::%{_y}%::*}
+          add type of block at loop-value to {_sortedblocks.blocks::%{_y}%::*}
+          if {_y} is greater than {_highest}:
+            set {_highest} to {_y}
+          if {_y} is less than {_lowest}:
+            set {_lowest} to {_y}
+        loop {_highest} - {_lowest} + 1 times:
+          if loop-value is {_highest} - {_lowest} + 1:
+            loop {_sortedblocks.locations::%{_lowest}%::*}:
+              set block at loop-value-2 to air
+          else:
+            loop {_highest} - {_lowest} times:
+              loop {_sortedblocks.locations::%loop-value-2 + {_lowest} - 1%::*}:
+                set block at loop-value-3 to block 1 block above loop-value-3
+                set block at block 1 block above loop-value-3 to air
+            loop (4 - {bigdoors.dooroptions.openspeed::%{_id}%}) times:
+              wait 2 ticks
+        loop {bigdoors.dooroptions.opentimer::%{_id}%} times:
+          wait 1 second
+        loop {_sortedblocks.locations::%{_highest}%::*}:
+          set {_loc} to loop-value
+          set y-coordinate of {_loc} to {_lowest}
+          set block at {_loc} to {_sortedblocks.blocks::%{_highest}%::%loop-index%}
+        loop (4 - {bigdoors.dooroptions.openspeed::%{_id}%}) times:
+          wait 2 ticks
+        loop {_highest} - {_lowest} times:
+          loop {_highest} - {_lowest} times:
+            loop {_sortedblocks.locations::%{_highest} - loop-value-2%::*}:
+              set block 1 block above loop-value-3 to block at loop-value-3
+          loop {_sortedblocks.locations::%{_highest} - loop-value%::*}:
+            set {_loc} to loop-value-2
+            set y-coordinate of {_loc} to {_lowest}
+            set block at {_loc} to {_sortedblocks.blocks::%{_highest} - loop-value-1%::%loop-index%}
+          loop (4 - {bigdoors.dooroptions.openspeed::%{_id}%}) times:
+            wait 2 ticks
+      clear {bigdoors.doorinuse::%{_id}%}
+
+command /resetinusedoors:
+  permission: op
+  trigger:
+    clear {bigdoors.doorinuse::*}

@@ -1,0 +1,221 @@
+# Guns. Like, my 4th gun skript or something.
+
+# Firing Event
+on right click:
+  # All guns should have these two characters between the name and the amount of ammunition. ex. "&7Pistol &8›› &712"
+  if name of player's tool contains "&8››":
+    cancel event
+    # Rips out all of the formatting in the gun's name to leave just the raw name text. No colors, no spaces, no ammo gague.
+    set {_formatting::*} to name of player's tool split at " &8››"
+    set {_guntype} to uncolored lowercase {_formatting::1}
+    replace all " " in {_guntype} with ""
+    # All guns should have " &8›› &7" before their ammunition number to signify where the ammo gague is.
+    set {_formatting::*} to name of player's tool split at " &8›› &7"
+    set {_ammo} to {_formatting::2} parsed as integer
+    # Makes sure the gun can be fired / removes 1 ammunition from the gun.
+    if {_ammo} is greater than 0:
+      if cooldown of player's tool for player is 0 ticks:
+        set {_newname} to "%{_formatting::1}% &8›› &7%{_ammo} - 1%"
+        set name of player's tool to {_newname}
+        set cooldown of player's tool for player to {guns.cooldown::%{_guntype}%}
+        # Actual bullet firing code.
+        push player up with force 0.1
+        push player backwards with force {guns.recoil::%{_guntype}%}
+        loop {guns.shots::%{_guntype}%} times:
+          set {_loc::%loop-value%} to location 1 block in front of location 0.25 blocks right of location 0.25 blocks below player's head location
+          add (random number between (-45 * (1 - ({guns.accuracy::%{_guntype}%} / 100))) and (45 * (1 - ({guns.accuracy::%{_guntype}%} / 100)))) to yaw of {_loc::%loop-value%}
+          add (random number between (-45 * (1 - ({guns.accuracy::%{_guntype}%} / 100))) and (45 * (1 - ({guns.accuracy::%{_guntype}%} / 100)))) to pitch of {_loc::%loop-value%}
+        loop ({guns.range::%{_guntype}%} * 2) times:
+          loop {guns.shots::%{_guntype}%} times:
+            if {_loc::%loop-value-2%} is set:
+              play instant spell at {_loc::%loop-value-2%}
+              loop all entities in radius 1 of {_loc::%loop-value-2%}:
+                if loop-entity is not player:
+                  if health of loop-entity is greater than 0:
+                    damage loop-entity by {guns.damage::%{_guntype}%}
+                    clear {_loc::%loop-value-2%}
+              if block at {_loc::%loop-value-2%} is solid:
+                if block at {_loc::%loop-value-2%} is a target block:
+                  shoot snowball from {_loc::%loop-value-2%}
+                clear {_loc::%loop-value-2%}
+              loop all entities in radius 1 of location 1 block below {_loc::%loop-value-2%}:
+                if loop-entity is not player:
+                  if health of loop-entity is greater than 0:
+                    add ({guns.damage::%{_guntype}%} * 1.5) to {_damage::%loop-entity's uuid%}
+                    clear {_loc::%loop-value-2%}
+              set {_loc::%loop-value-2%} to location 0.5 blocks in front of {_loc::%loop-value-2%}
+          loop {_damage::*}:
+            make player damage loop-index parsed as entity by loop-value-2
+          clear {_damage::*}
+          if loop-value / 8 is floor(loop-value / 8):
+            wait 1 tick
+
+    else:
+      # Copy of the reload event, called when the player shoots with no ammunition.
+      if cooldown of player's tool for player is 0 ticks:
+        set {_tool} to player's tool
+        send action bar "&7Reloading..." to player
+        set cooldown of player's tool for player to 5 seconds
+        while cooldown of player's tool for player is greater than 0 ticks:
+          apply slowness 4 without particles to player for 6 ticks replacing existing effect
+          wait 5 ticks
+          if player's tool is not {_tool}:
+            set cooldown of {_tool} for player to 0 seconds
+            stop
+        if player's tool is not {_tool}:
+          set cooldown of {_tool} for player to 0 seconds
+          stop
+        set {_newname} to "%{_formatting::1}% &8›› &7%{guns.maxammo::%{_guntype}%}%"
+        set name of player's tool to {_newname}
+
+# Reloading Event
+on drop:
+  if name of event-item contains "&8››":
+    set {_tool} to event-item
+    set {_formatting::*} to name of {_tool} split at " &8››"
+    set {_guntype} to uncolored lowercase {_formatting::1}
+    replace all " " in {_guntype} with ""
+    set {_formatting::*} to name of {_tool} split at " &8›› &7"
+    set {_ammo} to {_formatting::2} parsed as integer
+    if {_ammo} is less than {guns.maxammo::%{_guntype}%}:
+      cancel event
+      wait 1 tick
+      if cooldown of player's tool for player is 0 ticks:
+        send action bar "&7Reloading..." to player
+        set cooldown of player's tool for player to 5.05 seconds
+        # Waits for the 5 second cooldown to end before reloading the player's gun.
+        while cooldown of player's tool for player is greater than 0.1 seconds:
+          apply slowness 4 without particles to player for 6 ticks replacing existing effect
+          wait 5 ticks
+          if player's tool is not {_tool}:
+            set cooldown of {_tool} for player to 0 seconds
+            stop
+        if player's tool is not {_tool}:
+          set cooldown of {_tool} for player to 0 seconds
+          stop
+        set {_newname} to "%{_formatting::1}% &8›› &7%{guns.maxammo::%{_guntype}%}%"
+        set name of player's tool to {_newname}
+
+
+on load:
+  #
+  # Sets the stats of each gun through the worst object-oriented-adjacent crap you have ever seen.
+  #
+
+  # Format for gun definition:
+  # set {_guntype} to ""
+  #
+  # set {guns.maxammo::%{_guntype}%} to
+  # set {guns.damage::%{_guntype}%} to
+  # set {guns.accuracy::%{_guntype}%} to
+  # set {guns.range::%{_guntype}%} to
+  # set {guns.shots::%{_guntype}%} to
+  # set {guns.recoil::%{_guntype}%} to
+  # set {guns.cooldown::%{_guntype}%} to
+
+  # guns.maxammo: Any positive integer. Defines how many bullets can be loaded into a gun.
+  # guns.damage: Any positive number cleanly divisible by 0.5. 0.5 = 1/2 a heart of damage. Might work with negative numbers to heal? (Untested)
+  # guns.accuracy: Any number from 0 to 100 (reccomended 70 - 100). Taken as a percentage (50 -> 50% accuracy, etc). Pitch/yaw accuracy can be calculated with (45 * (1 - (accuracy / 100))).
+  # guns.range: Any positive number cleanly divisible by 0.5. 1 range = 1 block travelled by the bullet.
+  # guns.shots: Any positive integer. Defines how many bullets are shot at once. (Mainly used for shotguns)
+  # guns.recoil: Any positive number. Light push = ~0.1, heavy push = ~0.5
+  # guns.cooldown: Any timespan. Signifies cooldown between shots.
+
+  # Ramshackle Pistol
+  set {_guntype} to "ramshacklepistol"
+
+  set {guns.maxammo::%{_guntype}%} to 12
+  set {guns.damage::%{_guntype}%} to 1.5
+  set {guns.accuracy::%{_guntype}%} to 90
+  set {guns.range::%{_guntype}%} to 20
+  set {guns.shots::%{_guntype}%} to 1
+  set {guns.recoil::%{_guntype}%} to 0.05
+  set {guns.cooldown::%{_guntype}%} to 5 ticks
+
+  # Guard Sidearm
+  set {_guntype} to "guardsidearm"
+
+  set {guns.maxammo::%{_guntype}%} to 15
+  set {guns.damage::%{_guntype}%} to 2
+  set {guns.accuracy::%{_guntype}%} to 95
+  set {guns.range::%{_guntype}%} to 25
+  set {guns.shots::%{_guntype}%} to 1
+  set {guns.recoil::%{_guntype}%} to 0.075
+  set {guns.cooldown::%{_guntype}%} to 5 ticks
+
+  # Training Pistol
+  set {_guntype} to "trainingpistol"
+
+  set {guns.maxammo::%{_guntype}%} to 20
+  set {guns.damage::%{_guntype}%} to 0
+  set {guns.accuracy::%{_guntype}%} to 99
+  set {guns.range::%{_guntype}%} to 25
+  set {guns.shots::%{_guntype}%} to 1
+  set {guns.recoil::%{_guntype}%} to 0
+  set {guns.cooldown::%{_guntype}%} to 0 ticks
+
+  # Shotgun
+  set {_guntype} to "shotgun"
+
+  set {guns.maxammo::%{_guntype}%} to 3
+  set {guns.damage::%{_guntype}%} to 2
+  set {guns.accuracy::%{_guntype}%} to 75
+  set {guns.range::%{_guntype}%} to 7
+  set {guns.shots::%{_guntype}%} to 5
+  set {guns.recoil::%{_guntype}%} to 0.4
+  set {guns.cooldown::%{_guntype}%} to 17 ticks
+
+  # Single-Shot Rifle
+  set {_guntype} to "single-shotrifle"
+
+  set {guns.maxammo::%{_guntype}%} to 1
+  set {guns.damage::%{_guntype}%} to 10
+  set {guns.accuracy::%{_guntype}%} to 97.5
+  set {guns.range::%{_guntype}%} to 40
+  set {guns.shots::%{_guntype}%} to 1
+  set {guns.recoil::%{_guntype}%} to 0.3
+  set {guns.cooldown::%{_guntype}%} to 0 ticks
+
+  # Quickfire SMG
+  set {_guntype} to "quickfiresmg"
+
+  set {guns.maxammo::%{_guntype}%} to 30
+  set {guns.damage::%{_guntype}%} to 1
+  set {guns.accuracy::%{_guntype}%} to 90
+  set {guns.range::%{_guntype}%} to 15
+  set {guns.shots::%{_guntype}%} to 1
+  set {guns.recoil::%{_guntype}%} to 0.1
+  set {guns.cooldown::%{_guntype}%} to 0 ticks
+
+  # Reference Rifle
+  set {_guntype} to "referencerifle"
+
+  set {guns.maxammo::%{_guntype}%} to 24
+  set {guns.damage::%{_guntype}%} to 2
+  set {guns.accuracy::%{_guntype}%} to 95
+  set {guns.range::%{_guntype}%} to 40
+  set {guns.shots::%{_guntype}%} to 1
+  set {guns.recoil::%{_guntype}%} to 0.075
+  set {guns.cooldown::%{_guntype}%} to 5 ticks
+
+  # hilarious gun
+  set {_guntype} to "hilariousgun"
+
+  set {guns.maxammo::%{_guntype}%} to 999999
+  set {guns.damage::%{_guntype}%} to 1
+  set {guns.accuracy::%{_guntype}%} to 75
+  set {guns.range::%{_guntype}%} to 100
+  set {guns.shots::%{_guntype}%} to 500
+  set {guns.recoil::%{_guntype}%} to 1
+  set {guns.cooldown::%{_guntype}%} to 20 ticks
+
+  # Recoil Generator
+  set {_guntype} to "recoilgenerator"
+
+  set {guns.maxammo::%{_guntype}%} to 5
+  set {guns.damage::%{_guntype}%} to 0
+  set {guns.accuracy::%{_guntype}%} to 0
+  set {guns.range::%{_guntype}%} to 0
+  set {guns.shots::%{_guntype}%} to 0
+  set {guns.recoil::%{_guntype}%} to 100
+  set {guns.cooldown::%{_guntype}%} to 0 ticks
